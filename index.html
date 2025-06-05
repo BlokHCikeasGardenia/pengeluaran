@@ -208,6 +208,16 @@
     const sortableCols = [1,4,5];
     const hiddenCols = [0,7];
 
+    function isValidURL(str) {
+      // Simple URL validation
+      try {
+        const url = new URL(str);
+        return url.protocol === "http:" || url.protocol === "https:";
+      } catch (e) {
+        return false;
+      }
+    }
+
     function renderTable() {
       const table = document.getElementById('mainTable');
       table.innerHTML = '';
@@ -251,7 +261,35 @@
         const tr = document.createElement('tr');
         row.forEach((cell, j) => {
           const td = document.createElement('td');
-          td.textContent = cell;
+          // Kolom terakhir yang tampil (kolom ke-7 dari yang tampil) => index ke-6 dalam array setelah hidden (karena 0 dan 7 asli di-hide)
+          // Namun karena kita tidak menghapus array, index tampil ke-7 = index ke-8 asli (yaitu j==8, karena 0-based)
+          // Tetapi karena hidden, kita tetap gunakan j == tampil index ke-6 (kolom ke-7 yang tampil)
+          // Jadi, cari index kolom ke-7 dari yang tampil, yaitu kolom ke-8 asli (karena 0 dan 7 di-hide)
+          // Untuk amannya, kolom ke-7 tampil adalah index ke-6 dalam array setelah menyembunyikan kolom 0 dan 7
+          // Namun karena kita hanya menambah class hidden-col, index asli tetap, jadi cukup cek:
+          // Hitung kolom tampil ke-7: tampilIdx = 0; for loop row, if !hiddenCols.includes(j) tampilIdx++; jika tampilIdx == 7 maka itu kolom hyperlink
+          // Lebih sederhana: kolom yang tampil ke-7 adalah kolom ke-8 asli (karena 0 dan 7 di-hide), yaitu j==8
+
+          // Cek kolom ke-7 dari kolom yang tampil (index tampil ==6)
+          // Buat mapping index tampil ke index asli:
+          // tampil ke-1: j=1
+          // tampil ke-2: j=2
+          // tampil ke-3: j=3
+          // tampil ke-4: j=4
+          // tampil ke-5: j=5
+          // tampil ke-6: j=6
+          // tampil ke-7: j=8 (karena j=0 dan j=7 di-hide)
+          // Jadi, jika j == 8, render hyperlink
+          if (j === getLastDisplayColIndex(row.length)) {
+            // Jika cell ada dan berbentuk URL, render hyperlink
+            if (cell && isValidURL(cell)) {
+              td.innerHTML = `<a href="${cell}" target="_blank" rel="noopener noreferrer">${cell}</a>`;
+            } else {
+              td.textContent = cell;
+            }
+          } else {
+            td.textContent = cell;
+          }
           if (hiddenCols.includes(j)) td.classList.add('hidden-col');
           tr.appendChild(td);
         });
@@ -261,6 +299,22 @@
 
       renderPagination();
       renderTotalRowInfo();
+    }
+
+    // Fungsi untuk dapatkan index kolom terakhir yang tampil (kolom ke-7 dari yang tampil)
+    function getLastDisplayColIndex(totalCols) {
+      // Kolom asli = totalCols, hidden 0 dan 7, jadi kolom tampil = totalCols - 2
+      // Kolom tampil ke-7 = index ke-7 (1-based) = tampilIdx==7
+      // Mapping: iterasi dari 0 ke totalCols-1, skip if hidden, count tampilIdx++
+      // Return index asli saat tampilIdx==7
+      let tampilIdx = 0;
+      for (let k = 0; k < totalCols; k++) {
+        if (!hiddenCols.includes(k)) {
+          tampilIdx++;
+          if (tampilIdx == 7) return k;
+        }
+      }
+      return -1; // not found
     }
 
     function renderPagination() {
