@@ -142,13 +142,14 @@
   <div class="pagination" id="pagination"></div>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script>
+    // Hidden columns: ID Transaksi (0), Di Debet Dari (7), Link URL (9)
+    const hiddenCols = [0, 7, 9];
+    // Kolom sortable: Tanggal (1), Kategori Pengeluaran (4), Nominal (2)
+    const sortableCols = [1, 2, 4];
+
     const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRQBSWp7dBKus6wO8G-vBtSW9ZpKlRbmNLbXsaWQZeaQU_ZEY9p9EujIGTyIPVzb5cgVTlq9d0Lf29P/pub?gid=137659226&single=true&output=csv";
     let rowsPerPage = 8;
     let tableData = [], filteredData = [], sortCol = null, sortDir = 1, currentPage = 1;
-
-    // hiddenCols: 0 (ID), 6 (Di Debet Dari), 9 (URL)
-    const hiddenCols = [0,7,9];
-    const sortableCols = [1,4,5];
 
     function renderTable() {
       const table = document.getElementById('mainTable');
@@ -161,8 +162,8 @@
       filteredData[0].forEach((cell, i) => {
         if (hiddenCols.includes(i)) return;
         const th = document.createElement('th');
-        if (i === 2) th.textContent = "Kategori";
-        else if (i === 3) th.textContent = "SubKategori";
+        if (i === 4) th.textContent = "Kategori";
+        else if (i === 5) th.textContent = "SubKategori";
         else if (i === 8) th.textContent = "Bukti";
         else th.textContent = cell;
         if (sortableCols.includes(i)) {
@@ -186,7 +187,7 @@
       // Body
       const tbody = document.createElement('tbody');
       const startIdx = (currentPage - 1) * rowsPerPage + 1;
-      const endIdx = Math.min(startIdx + rowsPerPage - 1, filteredData.length -1);
+      const endIdx = Math.min(startIdx + rowsPerPage - 1, filteredData.length - 1);
       for (let i = startIdx; i <= endIdx; i++) {
         const row = filteredData[i];
         if (!row) continue;
@@ -194,8 +195,8 @@
         row.forEach((cell, j) => {
           if (hiddenCols.includes(j)) return;
           const td = document.createElement('td');
-          // Alignment kanan untuk kolom Nominal (index 5)
-          if (j === 5) td.classList.add('nominal-kanan');
+          // Alignment kanan untuk kolom Nominal (index 2)
+          if (j === 2) td.classList.add('nominal-kanan');
           // Kolom ke-9 (indeks 8) dijadikan hyperlink ke kolom url (indeks 9)
           if (j === 8) {
             const url = row[9];
@@ -320,13 +321,15 @@
       renderTable();
     }
 
+    // Cari hanya di kolom 1 (Tanggal), 8 (Rincian/Bukti Pengeluaran), 9 (Link URL)
+    const searchableCols = [1, 8, 9];
     function filterData(keyword) {
       keyword = keyword.toLowerCase();
       filteredData = [tableData[0]];
       for (let i = 1; i < tableData.length; i++) {
         const row = tableData[i];
         if (!row) continue;
-        if (row.some(cell => (cell || '').toLowerCase().includes(keyword))) {
+        if (searchableCols.some(idx => (row[idx] || '').toLowerCase().includes(keyword))) {
           filteredData.push(row);
         }
       }
