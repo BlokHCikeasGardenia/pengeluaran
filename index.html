@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Pengeluaran7</title>
+  <title>Pengeluaran</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body {
@@ -208,14 +208,27 @@
     const sortableCols = [1,4,5];
     const hiddenCols = [0,7];
 
-    function isValidURL(str) {
-      // Simple URL validation
-      try {
-        const url = new URL(str);
-        return url.protocol === "http:" || url.protocol === "https:";
-      } catch (e) {
-        return false;
+    // Fungsi parsing hyperlink formula dari Google Sheets
+    function parseHyperlinkFormula(cell) {
+      // Match format: =HYPERLINK("url"; "caption")
+      const regex = /^=HYPERLINK\(["']([^"']+)["'];\s*["']([^"']+)["']\)$/i;
+      const match = (cell || '').match(regex);
+      if (match) {
+        return { url: match[1], text: match[2] };
       }
+      return null;
+    }
+
+    // Mendapatkan index kolom ke-7 dari kolom yang tampil (dengan hiddenCols)
+    function getLastDisplayColIndex(totalCols) {
+      let tampilIdx = 0;
+      for (let k = 0; k < totalCols; k++) {
+        if (!hiddenCols.includes(k)) {
+          tampilIdx++;
+          if (tampilIdx == 7) return k;
+        }
+      }
+      return -1;
     }
 
     function renderTable() {
@@ -228,7 +241,6 @@
       const headRow = document.createElement('tr');
       filteredData[0].forEach((cell, i) => {
         const th = document.createElement('th');
-        // Custom header names for col 3 and 4 (index 2 dan 3)
         if (i === 2) th.textContent = "Kategori";
         else if (i === 3) th.textContent = "SubKategori";
         else th.textContent = cell;
@@ -261,29 +273,11 @@
         const tr = document.createElement('tr');
         row.forEach((cell, j) => {
           const td = document.createElement('td');
-          // Kolom terakhir yang tampil (kolom ke-7 dari yang tampil) => index ke-6 dalam array setelah hidden (karena 0 dan 7 asli di-hide)
-          // Namun karena kita tidak menghapus array, index tampil ke-7 = index ke-8 asli (yaitu j==8, karena 0-based)
-          // Tetapi karena hidden, kita tetap gunakan j == tampil index ke-6 (kolom ke-7 yang tampil)
-          // Jadi, cari index kolom ke-7 dari yang tampil, yaitu kolom ke-8 asli (karena 0 dan 7 di-hide)
-          // Untuk amannya, kolom ke-7 tampil adalah index ke-6 dalam array setelah menyembunyikan kolom 0 dan 7
-          // Namun karena kita hanya menambah class hidden-col, index asli tetap, jadi cukup cek:
-          // Hitung kolom tampil ke-7: tampilIdx = 0; for loop row, if !hiddenCols.includes(j) tampilIdx++; jika tampilIdx == 7 maka itu kolom hyperlink
-          // Lebih sederhana: kolom yang tampil ke-7 adalah kolom ke-8 asli (karena 0 dan 7 di-hide), yaitu j==8
-
-          // Cek kolom ke-7 dari kolom yang tampil (index tampil ==6)
-          // Buat mapping index tampil ke index asli:
-          // tampil ke-1: j=1
-          // tampil ke-2: j=2
-          // tampil ke-3: j=3
-          // tampil ke-4: j=4
-          // tampil ke-5: j=5
-          // tampil ke-6: j=6
-          // tampil ke-7: j=8 (karena j=0 dan j=7 di-hide)
-          // Jadi, jika j == 8, render hyperlink
           if (j === getLastDisplayColIndex(row.length)) {
-            // Jika cell ada dan berbentuk URL, render hyperlink
-            if (cell && isValidURL(cell)) {
-              td.innerHTML = `<a href="${cell}" target="_blank" rel="noopener noreferrer">${cell}</a>`;
+            // Cek apakah ini formula hyperlink, jika ya render <a>
+            const parsed = parseHyperlinkFormula(cell);
+            if (parsed) {
+              td.innerHTML = `<a href="${parsed.url}" target="_blank" rel="noopener noreferrer">${parsed.text}</a>`;
             } else {
               td.textContent = cell;
             }
@@ -301,37 +295,18 @@
       renderTotalRowInfo();
     }
 
-    // Fungsi untuk dapatkan index kolom terakhir yang tampil (kolom ke-7 dari yang tampil)
-    function getLastDisplayColIndex(totalCols) {
-      // Kolom asli = totalCols, hidden 0 dan 7, jadi kolom tampil = totalCols - 2
-      // Kolom tampil ke-7 = index ke-7 (1-based) = tampilIdx==7
-      // Mapping: iterasi dari 0 ke totalCols-1, skip if hidden, count tampilIdx++
-      // Return index asli saat tampilIdx==7
-      let tampilIdx = 0;
-      for (let k = 0; k < totalCols; k++) {
-        if (!hiddenCols.includes(k)) {
-          tampilIdx++;
-          if (tampilIdx == 7) return k;
-        }
-      }
-      return -1; // not found
-    }
-
     function renderPagination() {
       const totalRows = filteredData.length - 1;
       const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
       const pag = document.getElementById('pagination');
       pag.innerHTML = '';
       if (totalPages <= 1) return;
-
-      // Prev button
       const prevBtn = document.createElement('button');
       prevBtn.textContent = "Prev";
       prevBtn.disabled = currentPage === 1;
       prevBtn.onclick = () => { currentPage--; renderTable(); };
       pag.appendChild(prevBtn);
 
-      // Page number buttons (max 5 numbers shown, with ellipsis)
       let pageList = [];
       if (totalPages <= 5) {
         for (let i = 1; i <= totalPages; i++) pageList.push(i);
@@ -381,7 +356,6 @@
         pag.appendChild(btnLast);
       }
 
-      // Next button
       const nextBtn = document.createElement('button');
       nextBtn.textContent = "Next";
       nextBtn.disabled = currentPage === totalPages;
@@ -401,17 +375,13 @@
       filteredData = [filteredData[0]].concat(
         filteredData.slice(1).sort((a, b) => {
           let x = a[colIdx] || '', y = b[colIdx] || '';
-          // Sorting tanggal di kolom 2 (indeks 1)
           if (colIdx === 1) {
-            // Mendukung format dd/mm/yyyy dan yyyy-mm-dd
             let parseDate = s => {
               if (!s) return 0;
-              // Jika format dd/mm/yyyy, ubah ke yyyy-mm-dd
               if (s.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
                 let [d,m,y] = s.split('/');
                 return new Date(`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`).getTime();
               }
-              // Jika format yyyy-mm-dd atau ISO
               let dt = Date.parse(s);
               return isNaN(dt) ? 0 : dt;
             }
