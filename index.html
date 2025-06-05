@@ -46,6 +46,10 @@
       margin: 0 4px; color: #ec407a; font-weight: bold; font-size: 14px;
       pointer-events: none; background: none; border: none;
     }
+    /* Tambahan: alignment kanan untuk kolom nominal */
+    td.nominal-kanan {
+      text-align: right;
+    }
     @media (max-width: 1024px) {
       table { font-size: 10.5px; min-width: 350px; }
       .total-row-info { font-size: 12px; }
@@ -88,8 +92,9 @@
     let rowsPerPage = 8;
     let tableData = [], filteredData = [], sortCol = null, sortDir = 1, currentPage = 1;
 
+    // hiddenCols: 0 (ID), 6 (Di Debet Dari), 9 (URL)
+    const hiddenCols = [0,6,9];
     const sortableCols = [1,4,5];
-    const hiddenCols = [0,6,9]; // kolom ke-10 (indeks 9) = kolom URL, disembunyikan
 
     function renderTable() {
       const table = document.getElementById('mainTable');
@@ -100,11 +105,12 @@
       const thead = document.createElement('thead');
       const headRow = document.createElement('tr');
       filteredData[0].forEach((cell, i) => {
-        // Sembunyikan kolom ke-10 (indeks 9)
-        if (i === 9) return;
+        // Sembunyikan kolom yang di hiddenCols
+        if (hiddenCols.includes(i)) return;
         const th = document.createElement('th');
         if (i === 2) th.textContent = "Kategori";
         else if (i === 3) th.textContent = "SubKategori";
+        else if (i === 8) th.textContent = "Bukti";
         else th.textContent = cell;
         if (sortableCols.includes(i)) {
           th.classList.add('sortable');
@@ -119,7 +125,6 @@
           th.appendChild(up);
           th.appendChild(down);
         }
-        if (hiddenCols.includes(i)) th.classList.add('hidden-col');
         headRow.appendChild(th);
       });
       thead.appendChild(headRow);
@@ -134,9 +139,10 @@
         if (!row) continue;
         const tr = document.createElement('tr');
         row.forEach((cell, j) => {
-          // Sembunyikan kolom ke-10 (indeks 9)
-          if (j === 9) return;
+          if (hiddenCols.includes(j)) return;
           const td = document.createElement('td');
+          // Alignment kanan untuk kolom Nominal (index 5)
+          if (j === 5) td.classList.add('nominal-kanan');
           // Kolom ke-9 (indeks 8) dijadikan hyperlink ke kolom url (indeks 9)
           if (j === 8) {
             const url = row[9];
@@ -148,7 +154,6 @@
           } else {
             td.textContent = cell;
           }
-          if (hiddenCols.includes(j)) td.classList.add('hidden-col');
           tr.appendChild(td);
         });
         tbody.appendChild(tr);
