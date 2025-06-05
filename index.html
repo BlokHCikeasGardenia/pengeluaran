@@ -208,9 +208,9 @@
     const sortableCols = [1,4,5];
     const hiddenCols = [0,7];
 
-    // Fungsi parsing hyperlink formula dari Google Sheets
+    // Fungsi parsing formula HYPERLINK Google Sheets
     function parseHyperlinkFormula(cell) {
-      // Match format: =HYPERLINK("url"; "caption")
+      // Cek dan ambil =HYPERLINK("url";"teks")
       const regex = /^=HYPERLINK\(["']([^"']+)["'];\s*["']([^"']+)["']\)$/i;
       const match = (cell || '').match(regex);
       if (match) {
@@ -273,8 +273,9 @@
         const tr = document.createElement('tr');
         row.forEach((cell, j) => {
           const td = document.createElement('td');
+          // Kolom terakhir tampil (ke-7 dari yang tampil)
           if (j === getLastDisplayColIndex(row.length)) {
-            // Cek apakah ini formula hyperlink, jika ya render <a>
+            // Coba parsing hyperlink formula
             const parsed = parseHyperlinkFormula(cell);
             if (parsed) {
               td.innerHTML = `<a href="${parsed.url}" target="_blank" rel="noopener noreferrer">${parsed.text}</a>`;
