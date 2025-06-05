@@ -218,7 +218,7 @@
       const headRow = document.createElement('tr');
       filteredData[0].forEach((cell, i) => {
         const th = document.createElement('th');
-        // Custom header names for col 3 and 4 (index 2 and 3)
+        // Custom header names for col 3 and 4 (index 2 dan 3)
         if (i === 2) th.textContent = "Kategori";
         else if (i === 3) th.textContent = "SubKategori";
         else th.textContent = cell;
@@ -347,6 +347,24 @@
       filteredData = [filteredData[0]].concat(
         filteredData.slice(1).sort((a, b) => {
           let x = a[colIdx] || '', y = b[colIdx] || '';
+          // Sorting tanggal di kolom 2 (indeks 1)
+          if (colIdx === 1) {
+            // Mendukung format dd/mm/yyyy dan yyyy-mm-dd
+            let parseDate = s => {
+              if (!s) return 0;
+              // Jika format dd/mm/yyyy, ubah ke yyyy-mm-dd
+              if (s.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+                let [d,m,y] = s.split('/');
+                return new Date(`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`).getTime();
+              }
+              // Jika format yyyy-mm-dd atau ISO
+              let dt = Date.parse(s);
+              return isNaN(dt) ? 0 : dt;
+            }
+            let dx = parseDate(x);
+            let dy = parseDate(y);
+            return (dx - dy) * sortDir;
+          }
           let nx = parseFloat(x.replace(/[^0-9.-]/g, '')), ny = parseFloat(y.replace(/[^0-9.-]/g, ''));
           if (!isNaN(nx) && !isNaN(ny)) return (nx - ny) * sortDir;
           return x.localeCompare(y, 'id', {sensitivity:'base'}) * sortDir;
